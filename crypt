@@ -1,0 +1,220 @@
+local crypt = {}
+
+crypt.alphas = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+crypt.nums = "0123456789"
+crypt.symbols = "!@#$%^&*()_+-=[]{}|;:,.<>/?"
+crypt.chars = crypt.alphas .. crypt.nums .. crypt.symbols
+
+local cryptutil = {}
+
+function cryptutil:randomString(length)
+    local str = ""
+    for i = 1, length do
+        str = str .. string.sub(crypt.chars, math.random(1, #crypt.chars), math.random(1, #crypt.chars))
+    end
+    return str
+end
+
+function cryptutil:splits(str, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    str:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+function cryptutil:split(str, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    str:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+function cryptutil:bytesmash(instance)
+    local type = type(instance)
+    local bytes = {}
+    if type == "string" then
+        for i = 1, #instance do
+            bytes[i] = string.byte(instance, i)
+        end
+    elseif type == "number" then
+        local str = tostring(instance)
+        for i = 1, #str do
+            bytes[i] = string.byte(str, i)
+        end
+    else
+        warn("bytesmash: invalid instance type")
+    end
+
+    return bytes
+end
+
+function cryptutil:keygen(len)
+    local key = cryptutil:randomString(len)
+    local keybytes = cryptutil:bytesmash(key)
+    return key, keybytes
+end
+
+_G.key, _G.keybytes = cryptutil:keygen(38)
+
+function cryptutil:encrypt(str, key)
+    local str = str
+    local key = key
+    local keybytes = cryptutil:bytesmash(key)
+    local strbytes = cryptutil:bytesmash(str)
+    local encbytes = {}
+
+    if key ~= _G.key then
+        warn("key is not valid")
+        return nil
+    end
+
+    for i = 1, #strbytes do
+        if keybytes[i] == nil then
+            keybytes[i] = 0
+        end
+
+        encbytes[i] = strbytes[i] + keybytes[i]
+    end
+    local encstr = ""
+    for i = 1, #encbytes do
+        if encbytes[i] > 255 then
+            encstr = encstr .. " "
+        else
+            encstr = encstr .. string.char(encbytes[i])
+        end
+    end
+    return encstr
+end
+
+function cryptutil:decrypt(str, key)
+    local str = str
+    local key = key
+    local keybytes = cryptutil:bytesmash(key)
+    local strbytes = cryptutil:bytesmash(str)
+    local decbytes = {}
+
+    if key ~= _G.key then
+        warn("key is not valid")
+        return nil
+    end
+
+    for i = 1, #strbytes do
+        decbytes[i] = strbytes[i] - keybytes[i]
+    end
+    local decstr = ""
+    for i = 1, #decbytes do
+        if decbytes[i] > 255 then
+            decstr = decstr .. " "
+        else
+            decstr = decstr .. string.char(decbytes[i])
+        end
+    end
+    return decstr
+end
+
+function cryptutil:encryptTable(t, key)
+    local t = t
+    local containsNestedTables = false
+
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            containsNestedTables = true
+        end
+    end
+
+    local key = key
+
+    if containsNestedTables then
+        local enc = {}
+        for k, v in pairs(t) do
+            if type(v) == "table" then
+                enc[k] = cryptutil:encryptTable(v, key)
+            else
+                enc[k] = cryptutil:encrypt(v, key)
+            end
+        end
+        return enc
+    else
+        local enc = {}
+        for k, v in pairs(t) do
+            enc[k] = cryptutil:encrypt(v, key)
+        end
+        return enc
+    end
+end
+
+function cryptutil:decryptTable(t, key)
+    local t = t
+    local containsNestedTables = false
+
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            containsNestedTables = true
+        end
+    end
+
+    local key = key
+
+    if containsNestedTables then
+        local dec = {}
+        for k, v in pairs(t) do
+            if type(v) == "table" then
+                dec[k] = cryptutil:decryptTable(v, key)
+            else
+                dec[k] = cryptutil:decrypt(v, key)
+            end
+        end
+        return dec
+    else
+        local dec = {}
+        for k, v in pairs(t) do
+            dec[k] = cryptutil:decrypt(v, key)
+        end
+        return dec
+    end
+end
+
+function cryptutil:obfFile(path)
+    if isfile(path) then
+        local file = readfile(path)
+
+        local enc = cryptutil:encrypt(file, _G.key)
+
+        warn("Encrypting file: " .. path)
+
+        local pathWithoutExtension = string.sub(path, 1, #path - 4)
+        local newPath = pathWithoutExtension .. ".obf"
+
+        writefile(newPath, enc)
+
+        warn("Encrypted file: " .. newPath)
+
+        return newPath
+
+    else
+        warn("File does not exist: " .. path)
+    end
+end
+
+function cryptutil:deobFile(path)
+    if isfile(path) then
+        local file = readfile(path)
+
+        local dec = cryptutil:decrypt(file, _G.key)
+
+        warn("Decrypting file: " .. path)
+
+        local pathWithoutExtension = string.sub(path, 1, #path - 4)
+        local newPath = pathWithoutExtension .. ".deob"
+
+        writefile(newPath, dec)
+
+        warn("Decrypted file: " .. newPath)
+
+        return newPath
+    else
+        warn("File does not exist: " .. path)
+    end
+end
+
+return cryptutil
