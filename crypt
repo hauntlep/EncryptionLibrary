@@ -99,6 +99,10 @@ function cryptutil:decrypt(str, key)
     end
 
     for i = 1, #strbytes do
+        if keybytes[i] == nil then
+            keybytes[i] = 0
+        end
+        
         decbytes[i] = strbytes[i] - keybytes[i]
     end
     local decstr = ""
