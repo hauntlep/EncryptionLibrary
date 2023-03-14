@@ -107,7 +107,7 @@ function cryptutil:decrypt(str, key)
     end
     local decstr = ""
     for i = 1, #decbytes do
-        if decbytes[i] > 255 or decbytes[i] < 0 and string.char(decbytes[i]) ~= nil or string.char(decbytes[i]) ~= " " then
+        if decbytes[i] > 255 or decbytes[i] < 0 and string.char(decbytes[i]) ~= nil and string.char(decbytes[i]) ~= " " and decbytes[i] ~= 32 then
             decstr = decstr .. " "
         else
             warn("decbytes[i] = " .. decbytes[i] .. " | string.char(decbytes[i]) = " .. string.char(decbytes[i]))
