@@ -107,7 +107,7 @@ function cryptutil:decrypt(str, key)
     end
     local decstr = ""
     for i = 1, #decbytes do
-        if decbytes[i] > 255 then
+        if decbytes[i] > 255 or decbytes[i] < 0 then
             decstr = decstr .. " "
         else
             decstr = decstr .. string.char(decbytes[i])
@@ -220,5 +220,7 @@ function cryptutil:deobFile(path)
         warn("File does not exist: " .. path)
     end
 end
+
+-- Localscript.txt
 
 return cryptutil
