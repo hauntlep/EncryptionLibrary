@@ -108,12 +108,15 @@ function cryptutil:decrypt(str, key)
     local decstr = ""
     for i = 1, #decbytes do
         if decbytes[i] then continue; end
-        
+
         if decbytes[i] > 255 or decbytes[i] < 0 or decbytes[i] == nil then
             decstr = decstr -- do nothing if the byte is invalid
         else
-            warn("decbytes[i] = " .. decbytes[i] .. " | string.char(decbytes[i]) = " .. string.char(decbytes[i]))
-            decstr = decstr .. string.char(decbytes[i])
+            if string.char(decbytes[i]) == " " or string.char(decbytes[i]) == nil then
+                decstr = decstr .. " "
+            else
+                decstr = decstr .. string.char(decbytes[i])
+            end
         end
     end
     return decstr
