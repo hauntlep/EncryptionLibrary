@@ -107,18 +107,19 @@ function cryptutil:decrypt(str, key)
     end
     local decstr = ""
     for i = 1, #decbytes do
-        if decbytes[i] then continue; end
-
-        if decbytes[i] > 255 or decbytes[i] < 0 or decbytes[i] == nil then
-            decstr = decstr -- do nothing if the byte is invalid
-        else
-            if string.char(decbytes[i]) == " " or string.char(decbytes[i]) == nil then
-                decstr = decstr .. " "
-            else
-                decstr = decstr .. string.char(decbytes[i])
-            end
+        if decbytes[i] == nil or decbytes[i] > 255 or decbytes[i] < 0 then 
+            -- skip this byte
+            continue
         end
+
+        local char = string.char(decbytes[i])
+        if char then
+            decstr = decstr .. char
+        end
+    
+        continue
     end
+
     return decstr
 end
 
@@ -226,7 +227,5 @@ function cryptutil:deobFile(path)
         warn("File does not exist: " .. path)
     end
 end
-
--- Localscript.txt
 
 return cryptutil
