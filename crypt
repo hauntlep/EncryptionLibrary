@@ -42,7 +42,11 @@ function cryptutil:bytesmash(instance)
             bytes[i] = string.byte(str, i)
         end
     else
-        warn("bytesmash: invalid instance type")
+        warn("bytesmash: invalid instance type, converting to string")
+        local str = tostring(instance)
+        for i = 1, #str do
+            bytes[i] = string.byte(str, i)
+        end
     end
 
     return bytes
